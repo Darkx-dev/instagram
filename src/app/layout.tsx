@@ -26,7 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} max-md:flex-col-reverse flex max-h-screen overflow-hidden dark:text-white dark:bg-black`}
+        className={`${geistSans.variable} ${geistMono.variable} max-md:flex-col-reverse flex h-screen max-h-screen overflow-hidden dark:text-white dark:bg-black`}
       >
         {/* Sidebar/navbar */}
         <Navbar />

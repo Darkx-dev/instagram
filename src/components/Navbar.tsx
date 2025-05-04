@@ -29,9 +29,7 @@ export default function Navbar() {
           <NavItem route={ROUTES.EXPLORE} />
           <NavItem route={ROUTES.REELS} />
           <NavItem route={ROUTES.CREATE} />
-          <NavItem route={ROUTES.INBOX} />
           <NavItem route={ROUTES.PROFILE} />
-          <NavItem route={ROUTES.NOTIFICATION} />
         </div>
       </div>
     </div>
