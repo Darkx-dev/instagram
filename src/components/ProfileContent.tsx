@@ -1,14 +1,18 @@
 /* eslint-disable @next/next/no-img-element */
+import Link from 'next/link'
 import React from 'react'
 
 export default function ProfileContent() {
     return (
-        <div className="flex justify-center items-center">
-            <div className='mr-20'>
+        <div className="flex items-center pb-12">
+            <div className='mx-24'>
                 <img src="https://i.pravatar.cc/150?img=52" alt="" className="max-w-[150px] max-h-[150px] object-cover rounded-full" />
             </div>
             <div>
-                <h3 className='text-xl '>darkx.doe.23</h3>
+                <div className='flex items-center gap-4'>
+                    <h3 className='text-xl '>darkx.doe.23</h3>
+                    <Link href='#' className='px-3 py-2 bg-zinc-700 rounded-lg tracking-wide text-sm'>Edit profile</Link>
+                </div>
                 <div className='flex gap-10 my-4'>
                     <p> 2 <span className='text-zinc-400'>posts</span></p>
                     <p> 66 <span className='text-zinc-400'>followers</span></p>
