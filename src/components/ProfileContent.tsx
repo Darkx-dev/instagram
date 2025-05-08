@@ -1,8 +1,12 @@
 /* eslint-disable @next/next/no-img-element */
+import { authOptions } from '@/configs/next-auth';
+import { getServerSession } from 'next-auth'
 import Link from 'next/link'
 import React from 'react'
 
-export default function ProfileContent() {
+export default async function ProfileContent() {
+    const session = await getServerSession(authOptions);
+    console.log("ProfileContent: session =", session);
     return (
         <div className="flex items-center pb-12">
             <div className='mx-24'>
@@ -10,7 +14,7 @@ export default function ProfileContent() {
             </div>
             <div>
                 <div className='flex items-center gap-4'>
-                    <h3 className='text-xl '>darkx.doe.23</h3>
+                    <h3 className='text-xl '>{session?.user.username}</h3>
                     <Link href='#' className='px-3 py-2 bg-zinc-700 rounded-lg tracking-wide text-sm'>Edit profile</Link>
                 </div>
                 <div className='flex gap-10 my-4'>
