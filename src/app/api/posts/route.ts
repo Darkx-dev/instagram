@@ -38,12 +38,6 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "No valid images provided" }, { status: 400 });
         }
 
-        // Step 4: Validate authorId exists
-        const userExists = await prisma.user.findUnique({ where: { id: authorId } });
-        if (!userExists) {
-            return NextResponse.json({ error: "User not found" }, { status: 404 });
-        }
-
         // Step 5: Create Post with PostImages
         const post = await prisma.post.create({
             data: {

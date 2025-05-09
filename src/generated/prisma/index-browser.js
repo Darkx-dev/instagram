@@ -125,13 +125,22 @@ exports.Prisma.UserScalarFieldEnum = {
   fullName: 'fullName',
   bio: 'bio',
   avatarUrl: 'avatarUrl',
-  createdAt: 'createdAt'
+  pronouns: 'pronouns',
+  isVerified: 'isVerified',
+  accountType: 'accountType',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.PostScalarFieldEnum = {
   id: 'id',
   caption: 'caption',
+  postType: 'postType',
+  location: 'location',
+  isArchived: 'isArchived',
+  isPinned: 'isPinned',
   createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
   authorId: 'authorId'
 };
 
@@ -143,19 +152,53 @@ exports.Prisma.PostImageScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
-exports.Prisma.LikeScalarFieldEnum = {
+exports.Prisma.StoryScalarFieldEnum = {
   id: 'id',
-  userId: 'userId',
-  postId: 'postId',
-  createdAt: 'createdAt'
+  mediaUrl: 'mediaUrl',
+  mediaType: 'mediaType',
+  expiresAt: 'expiresAt',
+  createdAt: 'createdAt',
+  authorId: 'authorId',
+  highlightId: 'highlightId'
+};
+
+exports.Prisma.StoryViewScalarFieldEnum = {
+  id: 'id',
+  storyId: 'storyId',
+  viewerId: 'viewerId',
+  viewedAt: 'viewedAt'
+};
+
+exports.Prisma.HighlightScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  coverImage: 'coverImage',
+  createdAt: 'createdAt',
+  authorId: 'authorId'
 };
 
 exports.Prisma.CommentScalarFieldEnum = {
   id: 'id',
   content: 'content',
   createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
   postId: 'postId',
-  userId: 'userId'
+  authorId: 'authorId',
+  parentCommentId: 'parentCommentId'
+};
+
+exports.Prisma.CommentLikeScalarFieldEnum = {
+  id: 'id',
+  commentId: 'commentId',
+  userId: 'userId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.LikeScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  postId: 'postId',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.FollowScalarFieldEnum = {
@@ -168,6 +211,8 @@ exports.Prisma.FollowScalarFieldEnum = {
 exports.Prisma.MessageScalarFieldEnum = {
   id: 'id',
   content: 'content',
+  mediaUrl: 'mediaUrl',
+  isRead: 'isRead',
   createdAt: 'createdAt',
   senderId: 'senderId',
   receiverId: 'receiverId',
@@ -177,13 +222,16 @@ exports.Prisma.MessageScalarFieldEnum = {
 exports.Prisma.GroupScalarFieldEnum = {
   id: 'id',
   name: 'name',
-  createdAt: 'createdAt'
+  avatarUrl: 'avatarUrl',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.GroupMemberScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   groupId: 'groupId',
+  role: 'role',
   joinedAt: 'joinedAt'
 };
 
@@ -193,7 +241,29 @@ exports.Prisma.NotificationScalarFieldEnum = {
   content: 'content',
   createdAt: 'createdAt',
   read: 'read',
-  userId: 'userId'
+  userId: 'userId',
+  relatedUserId: 'relatedUserId',
+  relatedPostId: 'relatedPostId'
+};
+
+exports.Prisma.TagScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PostTagScalarFieldEnum = {
+  id: 'id',
+  postId: 'postId',
+  tagId: 'tagId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.SavedPostScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  postId: 'postId',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.SortOrder = {
@@ -211,13 +281,20 @@ exports.Prisma.ModelName = {
   User: 'User',
   Post: 'Post',
   PostImage: 'PostImage',
-  Like: 'Like',
+  Story: 'Story',
+  StoryView: 'StoryView',
+  Highlight: 'Highlight',
   Comment: 'Comment',
+  CommentLike: 'CommentLike',
+  Like: 'Like',
   Follow: 'Follow',
   Message: 'Message',
   Group: 'Group',
   GroupMember: 'GroupMember',
-  Notification: 'Notification'
+  Notification: 'Notification',
+  Tag: 'Tag',
+  PostTag: 'PostTag',
+  SavedPost: 'SavedPost'
 };
 
 /**

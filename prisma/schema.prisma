@@ -1,135 +1,282 @@
+// Prisma schema for an Instagram-like social media platform
+// Defines models, fields, and relationships for users, posts, stories, comments, etc.
+
 generator client {
-  provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js" // Specifies the Prisma Client generator
+  output   = "../src/generated/prisma" // Output directory for generated Prisma Client
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider = "sqlite" // Database provider (SQLite in this case)
+  url      = env("DATABASE_URL") // Database connection URL from environment variable
 }
 
+// User model: Represents a user account with profile details and relationships
 model User {
-  id        String   @id @default(cuid())
-  username  String   @unique
-  email     String   @unique
-  password  String
-  fullName  String
-  bio       String?
-  avatarUrl String?
-  createdAt DateTime @default(now())
+  id                String      @id @default(cuid()) // Unique identifier for the user (CUID)
+  username          String      @unique // Unique username for the user
+  email             String      @unique // Unique email address
+  password          String      // Hashed password for authentication
+  fullName          String      // User's full name
+  bio               String?     // Optional biography or description
+  avatarUrl         String?     // Optional URL to profile picture
+  pronouns          String?     // Optional pronouns (e.g., "they/them")
+  isVerified        Boolean     @default(false) // Indicates if the account is verified (e.g., blue checkmark)
+  accountType       String      @default("personal") // Account type: personal, business, or creator
+  createdAt         DateTime    @default(now()) // Timestamp when the user was created
+  updatedAt         DateTime    @updatedAt // Timestamp when the user was last updated
 
   // Relationships
-  posts            Post[]
-  comments         Comment[]
-  likes            Like[]
-  sentMessages     Message[]      @relation("SentMessages")
-  receivedMessages Message[]      @relation("ReceivedMessages")
-  groupMembers     GroupMember[]
-  notifications    Notification[]
-
-  followers Follow[] @relation("Followers")
-  following Follow[] @relation("Following")
+  posts             Post[]      // Posts created by the user
+  stories           Story[]     // Stories created by the user
+  comments          Comment[]   // Comments made by the user
+  likes             Like[]      // Likes given by the user on posts
+  sentMessages      Message[]   @relation("SentMessages") // Messages sent by the user
+  receivedMessages  Message[]   @relation("ReceivedMessages") // Messages received by the user
+  groupMembers      GroupMember[] // Groups the user is a member of
+  notifications     Notification[] // Notifications received by the user
+  followers         Follow[]    @relation("Followers") // Users following this user
+  following         Follow[]    @relation("Following") // Users this user is following
+  savedPosts        SavedPost[] // Posts saved/bookmarked by the user
+  highlights        Highlight[] // Story highlights created by the user
+  storyViews        StoryView[] // Stories viewed by the user (opposite of StoryView.viewer)
+  commentLikes      CommentLike[] // Comments liked by the user (opposite of CommentLike.user)
+  relatedNotifications Notification[] @relation("RelatedUser") // Notifications where this user is referenced (e.g., tagged)
 }
 
+// Post model: Represents a post (e.g., photo, reel) with media and interactions
 model Post {
-  id        String   @id @default(cuid())
-  caption   String?
-  createdAt DateTime @default(now())
+  id            String      @id @default(cuid()) // Unique identifier for the post
+  caption       String?     // Optional caption or description
+  postType      String      @default("post") // Type of post: post, reel, or story
+  location      String?     // Optional location tag (e.g., "New York")
+  isArchived    Boolean     @default(false) // Whether the post is archived (hidden)
+  isPinned      Boolean     @default(false) // Whether the post is pinned to the user's profile
+  createdAt     DateTime    @default(now()) // Timestamp when the post was created
+  updatedAt     DateTime    @updatedAt // Timestamp when the post was last updated
 
-  author   User   @relation(fields: [authorId], references: [id])
-  authorId String
+  author        User        @relation(fields: [authorId], references: [id]) // User who created the post
+  authorId      String      // Foreign key to User.id
+  images        PostImage[] // Images associated with the post (carousel support)
+  likes         Like[]      // Likes on the post
+  comments      Comment[]   // Comments on the post
+  tags          PostTag[]   // Hashtags associated with the post
+  savedBy       SavedPost[] // Users who saved/bookmarked the post
+  notifications Notification[] // Notifications related to the post (e.g., likes, comments)
 
-  images   PostImage[] // New relation for multiple images
-  likes    Like[]
-  comments Comment[]
+  @@index([postType]) // Index for faster queries by postType
 }
 
+// PostImage model: Represents an image in a post (supports multiple images per post)
 model PostImage {
-  id        String   @id @default(cuid())
-  imageUrl  String
-  post      Post     @relation(fields: [postId], references: [id])
-  postId    String
-  order     Int      @default(0) // To maintain image order
-  createdAt DateTime @default(now())
+  id            String      @id @default(cuid()) // Unique identifier for the image
+  imageUrl      String      // URL to the image file
+  post          Post        @relation(fields: [postId], references: [id]) // Post this image belongs to
+  postId        String      // Foreign key to Post.id
+  order         Int         @default(0) // Order of the image in the post (for carousels)
+  createdAt     DateTime    @default(now()) // Timestamp when the image was added
+
+  @@index([postId]) // Index for faster queries by postId
 }
 
-model Like {
-  id     String @id @default(cuid())
-  user   User   @relation(fields: [userId], references: [id])
-  userId String
-  post   Post   @relation(fields: [postId], references: [id])
-  postId String
+// Story model: Represents a temporary story (expires after 24 hours)
+model Story {
+  id            String      @id @default(cuid()) // Unique identifier for the story
+  mediaUrl      String      // URL to the story media (image or video)
+  mediaType     String      @default("image") // Type of media: image or video
+  expiresAt     DateTime    // Timestamp when the story expires
+  createdAt     DateTime    @default(now()) // Timestamp when the story was created
 
-  createdAt DateTime @default(now())
+  author        User        @relation(fields: [authorId], references: [id]) // User who created the story
+  authorId      String      // Foreign key to User.id
+  views         StoryView[] // Users who viewed the story
+  highlight     Highlight?  @relation(fields: [highlightId], references: [id]) // Highlight this story belongs to (if any)
+  highlightId   String?     // Optional foreign key to Highlight.id
 
-  @@unique([userId, postId])
+  @@index([authorId, expiresAt]) // Index for faster queries by author and expiration
 }
 
+// StoryView model: Tracks which users have viewed a story
+model StoryView {
+  id            String      @id @default(cuid()) // Unique identifier for the view
+  story         Story       @relation(fields: [storyId], references: [id]) // Story being viewed
+  storyId       String      // Foreign key to Story.id
+  viewer        User        @relation(fields: [viewerId], references: [id]) // User who viewed the story
+  viewerId      String      // Foreign key to User.id
+  viewedAt      DateTime    @default(now()) // Timestamp when the story was viewed
+
+  @@unique([storyId, viewerId]) // Ensures a user can only view a story once
+}
+
+// Highlight model: Represents a collection of stories saved as a highlight
+model Highlight {
+  id            String      @id @default(cuid()) // Unique identifier for the highlight
+  title         String      // Title of the highlight
+  coverImage    String?     // Optional URL to the cover image
+  createdAt     DateTime    @default(now()) // Timestamp when the highlight was created
+
+  author        User        @relation(fields: [authorId], references: [id]) // User who created the highlight
+  authorId      String      // Foreign key to User.id
+  stories       Story[]     // Stories included in the highlight
+
+  @@index([authorId]) // Index for faster queries by authorId
+}
+
+// Comment model: Represents a comment on a post, with support for replies and likes
 model Comment {
-  id        String   @id @default(cuid())
-  content   String
-  createdAt DateTime @default(now())
+  id                String      @id @default(cuid()) // Unique identifier for the comment
+  content           String      // Text content of the comment
+  createdAt         DateTime    @default(now()) // Timestamp when the comment was created
+  updatedAt         DateTime    @updatedAt // Timestamp when the comment was last updated
 
-  post   Post   @relation(fields: [postId], references: [id])
-  postId String
-  user   User   @relation(fields: [userId], references: [id])
-  userId String
+  post              Post        @relation(fields: [postId], references: [id]) // Post the comment is on
+  postId            String      // Foreign key to Post.id
+  author            User        @relation(fields: [authorId], references: [id]) // User who made the comment
+  authorId          String      // Foreign key to User.id
+  parentComment     Comment?    @relation("CommentReplies", fields: [parentCommentId], references: [id]) // Parent comment for replies
+  parentCommentId   String?     // Optional foreign key to Comment.id (for threaded replies)
+  replies           Comment[]   @relation("CommentReplies") // Child comments/replies to this comment
+  likes             CommentLike[] // Likes on the comment
+
+  @@index([postId, parentCommentId]) // Index for faster queries by post and parent comment
 }
 
+// CommentLike model: Represents a like on a comment
+model CommentLike {
+  id            String      @id @default(cuid()) // Unique identifier for the like
+  comment       Comment     @relation(fields: [commentId], references: [id]) // Comment being liked
+  commentId     String      // Foreign key to Comment.id
+  user          User        @relation(fields: [userId], references: [id]) // User who liked the comment
+  userId        String      // Foreign key to User.id
+  createdAt     DateTime    @default(now()) // Timestamp when the like was created
+
+  @@unique([userId, commentId]) // Ensures a user can only like a comment once
+  @@index([commentId]) // Index for faster queries by commentId
+}
+
+// Like model: Represents a like on a post
+model Like {
+  id            String      @id @default(cuid()) // Unique identifier for the like
+  user          User        @relation(fields: [userId], references: [id]) // User who liked the post
+  userId        String      // Foreign key to User.id
+  post          Post        @relation(fields: [postId], references: [id]) // Post being liked
+  postId        String      // Foreign key to Post.id
+  createdAt     DateTime    @default(now()) // Timestamp when the like was created
+
+  @@unique([userId, postId]) // Ensures a user can only like a post once
+  @@index([postId]) // Index for faster queries by postId
+}
+
+// Follow model: Represents a follow relationship between users
 model Follow {
-  id          String @id @default(cuid())
-  follower    User   @relation("Followers", fields: [followerId], references: [id])
-  followerId  String
-  following   User   @relation("Following", fields: [followingId], references: [id])
-  followingId String
+  id            String      @id @default(cuid()) // Unique identifier for the follow
+  follower      User        @relation("Followers", fields: [followerId], references: [id]) // User who is following
+  followerId    String      // Foreign key to User.id (follower)
+  following     User        @relation("Following", fields: [followingId], references: [id]) // User being followed
+  followingId   String      // Foreign key to User.id (following)
+  createdAt     DateTime    @default(now()) // Timestamp when the follow was created
 
-  createdAt DateTime @default(now())
-
-  @@unique([followerId, followingId])
+  @@unique([followerId, followingId]) // Ensures a user can only follow another user once
+  @@index([followerId, followingId]) // Index for faster queries by follower and following
 }
 
+// Message model: Represents a direct message between users or in a group
 model Message {
-  id        String   @id @default(cuid())
-  content   String
-  createdAt DateTime @default(now())
+  id            String      @id @default(cuid()) // Unique identifier for the message
+  content       String      // Text content of the message
+  mediaUrl      String?     // Optional URL to media (e.g., image, video)
+  isRead        Boolean     @default(false) // Whether the message has been read
+  createdAt     DateTime    @default(now()) // Timestamp when the message was created
 
-  sender     User   @relation("SentMessages", fields: [senderId], references: [id])
-  senderId   String
-  receiver   User   @relation("ReceivedMessages", fields: [receiverId], references: [id])
-  receiverId String
+  sender        User        @relation("SentMessages", fields: [senderId], references: [id]) // User who sent the message
+  senderId      String      // Foreign key to User.id (sender)
+  receiver      User        @relation("ReceivedMessages", fields: [receiverId], references: [id]) // User who received the message
+  receiverId    String      // Foreign key to User.id (receiver)
+  group         Group?      @relation(fields: [groupId], references: [id]) // Group the message belongs to (if any)
+  groupId       String?     // Optional foreign key to Group.id
 
-  group   Group?  @relation(fields: [groupId], references: [id])
-  groupId String?
+  @@index([senderId, receiverId]) // Index for faster queries by sender and receiver
 }
 
+// Group model: Represents a group chat
 model Group {
-  id        String   @id @default(cuid())
-  name      String
-  createdAt DateTime @default(now())
+  id            String      @id @default(cuid()) // Unique identifier for the group
+  name          String      // Name of the group
+  avatarUrl     String?     // Optional URL to group avatar
+  createdAt     DateTime    @default(now()) // Timestamp when the group was created
+  updatedAt     DateTime    @updatedAt // Timestamp when the group was last updated
 
-  members  GroupMember[]
-  messages Message[]
+  members       GroupMember[] // Members of the group
+  messages      Message[]     // Messages in the group
+
+  @@index([name]) // Index for faster queries by group name
 }
 
+// GroupMember model: Represents a user's membership in a group
 model GroupMember {
-  id      String @id @default(cuid())
-  user    User   @relation(fields: [userId], references: [id])
-  userId  String
-  group   Group  @relation(fields: [groupId], references: [id])
-  groupId String
+  id            String      @id @default(cuid()) // Unique identifier for the membership
+  user          User        @relation(fields: [userId], references: [id]) // User who is a member
+  userId        String      // Foreign key to User.id
+  group         Group       @relation(fields: [groupId], references: [id]) // Group the user is in
+  groupId       String      // Foreign key to Group.id
+  role          String      @default("member") // Role in the group: admin or member
+  joinedAt      DateTime    @default(now()) // Timestamp when the user joined the group
 
-  joinedAt DateTime @default(now())
-
-  @@unique([userId, groupId])
+  @@unique([userId, groupId]) // Ensures a user can only join a group once
+  @@index([groupId]) // Index for faster queries by groupId
 }
 
+// Notification model: Represents a notification (e.g., like, comment, follow)
 model Notification {
-  id        String   @id @default(cuid())
-  type      String
-  content   String?
-  createdAt DateTime @default(now())
-  read      Boolean  @default(false)
+  id            String      @id @default(cuid()) // Unique identifier for the notification
+  type          String      // Type of notification: like, comment, follow, mention
+  content       String?     // Optional content or message for the notification
+  createdAt     DateTime    @default(now()) // Timestamp when the notification was created
+  read          Boolean     @default(false) // Whether the notification has been read
 
-  user   User   @relation(fields: [userId], references: [id])
-  userId String
+  user          User        @relation(fields: [userId], references: [id]) // User receiving the notification
+  userId        String      // Foreign key to User.id
+  relatedUser   User?       @relation("RelatedUser", fields: [relatedUserId], references: [id]) // User related to the notification (e.g., who liked)
+  relatedUserId String?     // Optional foreign key to User.id
+  relatedPost   Post?       @relation(fields: [relatedPostId], references: [id]) // Post related to the notification (e.g., liked post)
+  relatedPostId String?     // Optional foreign key to Post.id
+
+  @@index([userId, type]) // Index for faster queries by user and notification type
+}
+
+// Tag model: Represents a hashtag
+model Tag {
+  id            String      @id @default(cuid()) // Unique identifier for the tag
+  name          String      @unique // Unique name of the hashtag (e.g., #travel)
+  createdAt     DateTime    @default(now()) // Timestamp when the tag was created
+
+  posts         PostTag[]   // Posts associated with this tag
+
+  @@index([name]) // Index for faster queries by tag name
+}
+
+// PostTag model: Represents the association between a post and a tag
+model PostTag {
+  id            String      @id @default(cuid()) // Unique identifier for the post-tag association
+  post          Post        @relation(fields: [postId], references: [id]) // Post associated with the tag
+  postId        String      // Foreign key to Post.id
+  tag           Tag         @relation(fields: [tagId], references: [id]) // Tag associated with the post
+  tagId         String      // Foreign key to Tag.id
+  createdAt     DateTime    @default(now()) // Timestamp when the association was created
+
+  @@unique([postId, tagId]) // Ensures a post can only have a tag once
+  @@index([tagId]) // Index for faster queries by tagId
+}
+
+// SavedPost model: Represents a post saved/bookmarked by a user
+model SavedPost {
+  id            String      @id @default(cuid()) // Unique identifier for the saved post
+  user          User        @relation(fields: [userId], references: [id]) // User who saved the post
+  userId        String      // Foreign key to User.id
+  post          Post        @relation(fields: [postId], references: [id]) // Post being saved
+  postId        String      // Foreign key to Post.id
+  createdAt     DateTime    @default(now()) // Timestamp when the post was saved
+
+  @@unique([userId, postId]) // Ensures a user can only save a post once
+  @@index([userId]) // Index for faster queries by userId
 }
