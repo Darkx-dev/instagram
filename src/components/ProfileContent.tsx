@@ -8,11 +8,11 @@ interface PageProps {
     followingCount: number | null,
     bio: string | null,
     username: string,
-    fullName: string | null,
-    avatarUrl: string
+    fullName: string,
+    avatarUrl?: string
 }
 
-export default async function ProfileContent({ postsCount, followersCount, followingCount, bio, avatarUrl, fullName, username }: PageProps) {
+export default async function ProfileContent({ postsCount, followersCount, followingCount, bio, avatarUrl = 'https://cdn.jsdelivr.net/gh/alohe/avatars/png/3d_4.png', fullName, username }: PageProps) {
 
     return (
         <div className="flex items-center pb-12">

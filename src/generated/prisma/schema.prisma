@@ -33,15 +33,24 @@ model User {
 
 model Post {
   id        String   @id @default(cuid())
-  imageUrl  String
   caption   String?
   createdAt DateTime @default(now())
 
   author   User   @relation(fields: [authorId], references: [id])
   authorId String
 
+  images   PostImage[] // New relation for multiple images
   likes    Like[]
   comments Comment[]
+}
+
+model PostImage {
+  id        String   @id @default(cuid())
+  imageUrl  String
+  post      Post     @relation(fields: [postId], references: [id])
+  postId    String
+  order     Int      @default(0) // To maintain image order
+  createdAt DateTime @default(now())
 }
 
 model Like {
@@ -53,7 +62,7 @@ model Like {
 
   createdAt DateTime @default(now())
 
-  @@unique([userId, postId]) // one like per user per post
+  @@unique([userId, postId])
 }
 
 model Comment {
@@ -116,7 +125,7 @@ model GroupMember {
 
 model Notification {
   id        String   @id @default(cuid())
-  type      String // "like", "comment", "follow", "message"
+  type      String
   content   String?
   createdAt DateTime @default(now())
   read      Boolean  @default(false)
