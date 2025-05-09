@@ -2,7 +2,7 @@
 import Instagram from "@/components/Instagram";
 import Link from "next/link";
 import React, { useState } from "react";
-import { signIn } from "next-auth/react";
+import { getSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 export default function LoginForm() {
@@ -42,7 +42,9 @@ export default function LoginForm() {
                 return;
             }
 
-            router.push("/profile");
+            const session = await getSession();
+
+            router.push(`/profile/${session?.user.username}`);
         } catch (err) {
             console.error(err);
             setError("An unexpected error occurred. Please try again.");

@@ -5,13 +5,13 @@ import { usePathname } from 'next/navigation';
 import React from 'react'
 const profileRoutes = [
     {
-        PATH: '/profile',
+        PATH: './',
         NAME: 'Posts',
         ICON: <Grid3x3Icon size={15}/>,
         FOR: 'profile'
     },
     {
-        PATH: '/profile/saved',
+        PATH: './saved',
         NAME: 'Saved',
         ICON: <BookmarkIcon size={15}/>,
         FOR: 'profile'
