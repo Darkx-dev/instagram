@@ -3,34 +3,34 @@ import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/configs/next-auth";
 
-// POST: Like a post
+// POST: Save a post
 export async function POST(
   req: NextRequest,
   { params }: { params: { postId: string } }
 ) {
   try {
     const { postId } = params;
-
+    
     // Get the current session to check if the user is authenticated
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
+    
     const userId = session.user.id;
-
+    
     // Check if the post exists
     const post = await prisma.post.findUnique({
       where: { id: postId },
-      select: { id: true, authorId: true },
+      select: { id: true },
     });
-
+    
     if (!post) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
-
-    // Check if the user has already liked the post
-    const existingLike = await prisma.like.findUnique({
+    
+    // Check if the user has already saved the post
+    const existingSave = await prisma.savedPost.findUnique({
       where: {
         userId_postId: {
           userId,
@@ -38,40 +38,27 @@ export async function POST(
         },
       },
     });
-
-    if (existingLike) {
+    
+    if (existingSave) {
       return NextResponse.json(
-        { error: "You have already liked this post" },
+        { error: "You have already saved this post" },
         { status: 400 }
       );
     }
-
-    // Create the like
-    await prisma.like.create({
+    
+    // Save the post
+    await prisma.savedPost.create({
       data: {
         userId,
         postId,
       },
     });
-
-    // Create a notification for the post author (if not liking own post)
-    if (post.authorId !== userId) {
-      await prisma.notification.create({
-        data: {
-          type: "like",
-          content: "liked your post",
-          userId: post.authorId, // The user receiving the notification
-          relatedUserId: userId, // The user who liked
-          relatedPostId: postId, // The post that was liked
-        },
-      });
-    }
-
-    return NextResponse.json({ message: "Post liked successfully" });
+    
+    return NextResponse.json({ message: "Post saved successfully" });
   } catch (error) {
-    console.error("Error liking post:", error);
+    console.error("Error saving post:", error);
     return NextResponse.json(
-      { error: "Failed to like post" },
+      { error: "Failed to save post" },
       { status: 500 }
     );
   } finally {
@@ -79,34 +66,34 @@ export async function POST(
   }
 }
 
-// DELETE: Unlike a post
+// DELETE: Unsave a post
 export async function DELETE(
   req: NextRequest,
   { params }: { params: { postId: string } }
 ) {
   try {
     const { postId } = params;
-
+    
     // Get the current session to check if the user is authenticated
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
+    
     const userId = session.user.id;
-
+    
     // Check if the post exists
     const post = await prisma.post.findUnique({
       where: { id: postId },
       select: { id: true },
     });
-
+    
     if (!post) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
-
-    // Check if the user has liked the post
-    const existingLike = await prisma.like.findUnique({
+    
+    // Check if the user has saved the post
+    const existingSave = await prisma.savedPost.findUnique({
       where: {
         userId_postId: {
           userId,
@@ -114,16 +101,16 @@ export async function DELETE(
         },
       },
     });
-
-    if (!existingLike) {
+    
+    if (!existingSave) {
       return NextResponse.json(
-        { error: "You have not liked this post" },
+        { error: "You have not saved this post" },
         { status: 400 }
       );
     }
-
-    // Delete the like
-    await prisma.like.delete({
+    
+    // Unsave the post
+    await prisma.savedPost.delete({
       where: {
         userId_postId: {
           userId,
@@ -131,12 +118,12 @@ export async function DELETE(
         },
       },
     });
-
-    return NextResponse.json({ message: "Post unliked successfully" });
+    
+    return NextResponse.json({ message: "Post unsaved successfully" });
   } catch (error) {
-    console.error("Error unliking post:", error);
+    console.error("Error unsaving post:", error);
     return NextResponse.json(
-      { error: "Failed to unlike post" },
+      { error: "Failed to unsave post" },
       { status: 500 }
     );
   } finally {

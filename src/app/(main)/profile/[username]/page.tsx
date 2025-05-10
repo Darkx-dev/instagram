@@ -1,15 +1,31 @@
 import ProfileContent from '@/components/ProfileContent';
 import ProfileNavbar from '@/components/ProfileNavbar';
 import ProfilePosts from '@/components/ProfilePosts';
+import SavedPosts from '@/components/SavedPosts';
+import { authOptions } from '@/configs/next-auth';
 import prisma from '@/lib/prisma';
 import { safeUserSelect } from '@/lib/prismaSelects';
+import { ExtendedPost } from '@/components/ProfilePosts';
+import { getServerSession } from 'next-auth';
 import { notFound } from 'next/navigation';
-import React from 'react';;
+import React from 'react';
 
 // Server component to display a user's profile page
-export default async function Profile({ params }: { params: Promise<{ username: string }> }) {
+export default async function Profile({
+  params,
+  searchParams
+}: {
+  params: { username: string },
+  searchParams: { tab?: string }
+}) {
+
   // Extract username from dynamic route parameters
-  const username = (await params).username;
+  const { username } = params;
+  const { tab } = searchParams;
+
+  // Get current user session
+  const session = await getServerSession(authOptions);
+  const isCurrentUser = session?.user?.username === username;
 
   try {
     // Fetch user data with related posts, followers, and following
@@ -21,7 +37,13 @@ export default async function Profile({ params }: { params: Promise<{ username: 
         fullName: true,
         bio: true,
         avatarUrl: true,
+        pronouns: true,
+        isVerified: true,
+        accountType: true,
         posts: {
+          where: {
+            isArchived: false, // Only show non-archived posts
+          },
           skip: 0,
           take: 20, // Limit to 20 posts for initial load
           orderBy: { createdAt: 'desc' }, // Sort posts by creation date (newest first)
@@ -48,7 +70,9 @@ export default async function Profile({ params }: { params: Promise<{ username: 
               select: {
                 id: true,
                 createdAt: true,
+                updatedAt: true,
                 content: true,
+                parentCommentId: true,
                 author: {
                   select: safeUserSelect, // Safe user fields for comment authors
                 },
@@ -57,7 +81,7 @@ export default async function Profile({ params }: { params: Promise<{ username: 
           },
         },
         followers: {
-          select: { id: true }, // Minimal data for counting
+          select: { id: true, followerId: true }, // Include followerId for checking if current user follows
         },
         following: {
           select: { id: true }, // Minimal data for counting
@@ -70,29 +94,116 @@ export default async function Profile({ params }: { params: Promise<{ username: 
       notFound(); // Use Next.js notFound() for 404 page
     }
 
+    // Check if current user is following this profile
+    let isFollowing = false;
+    if (session?.user?.id) {
+      isFollowing = user.followers.some(follow => follow.followerId === session.user?.id);
+    }
+
+    // Fetch saved posts if viewing own profile
+    let savedPosts: ExtendedPost[] = [];
+    if (isCurrentUser && session?.user?.id && tab === 'saved') {
+      const savedPostsData = await prisma.savedPost.findMany({
+        where: { userId: session.user.id },
+        take: 20,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          post: {
+            include: {
+              author: {
+                select: safeUserSelect,
+              },
+              images: {
+                orderBy: { order: 'asc' },
+              },
+              likes: {
+                select: {
+                  id: true,
+                  userId: true,
+                },
+              },
+              comments: {
+                select: {
+                  id: true,
+                  createdAt: true,
+                  updatedAt: true,
+                  content: true,
+                  parentCommentId: true,
+                  author: {
+                    select: safeUserSelect,
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      savedPosts = savedPostsData.map(savedPost => ({
+        ...savedPost.post,
+        savedAt: savedPost.createdAt,
+        isSaved: true,
+        // Ensure comments match the expected format
+        comments: savedPost.post.comments.map(comment => ({
+          ...comment,
+          parentCommentId: comment.parentCommentId || '', // Convert null to empty string
+          author: {
+            id: comment.author.id,
+            username: comment.author.username,
+            avatarUrl: comment.author.avatarUrl,
+          }
+        }))
+      }));
+    }
+
+    // Check if posts are liked by current user and format for component
+    const postsWithLikeStatus: ExtendedPost[] = user.posts.map(post => ({
+      ...post,
+      isLiked: session?.user?.id
+        ? post.likes.some(like => like.userId === session.user?.id)
+        : false,
+      // Ensure comments match the expected format
+      comments: post.comments.map(comment => ({
+        ...comment,
+        parentCommentId: comment.parentCommentId || '', // Convert null to empty string
+        author: {
+          id: comment.author.id,
+          username: comment.author.username,
+          avatarUrl: comment.author.avatarUrl,
+        }
+      }))
+    }));
+
     // Render profile page with user data
     return (
       <div className="container mx-auto">
         {/* Profile header with user details */}
         <ProfileContent
+          userId={user.id}
           postsCount={user.posts.length}
           followersCount={user.followers.length}
           followingCount={user.following.length}
           username={user.username}
           fullName={user.fullName ?? ''}
-          bio={user.bio ?? ''}
+          bio={user.bio}
+          avatarUrl={user.avatarUrl ?? undefined}
+          isFollowing={isFollowing}
+          isVerified={user.isVerified ?? false}
+          pronouns={user.pronouns}
         />
+
         {/* Navigation bar for profile sections */}
-        <ProfileNavbar />
-        {/* List of user's posts */}
-        <ProfilePosts initialPosts={user.posts.map(post => ({
-          ...post,
-          comments: post.comments.map(comment => ({
-            ...comment,
-            updatedAt: comment.createdAt, // Fallback to createdAt if updatedAt is missing
-            parentCommentId: '', // Default empty string for parentCommentId
-          }))
-        }))} />
+        <ProfileNavbar isCurrentUser={isCurrentUser} />
+
+        {/* List of user's posts or saved posts based on URL */}
+        {isCurrentUser && tab === 'saved' ? (
+          <SavedPosts initialPosts={savedPosts} />
+        ) : (
+          <ProfilePosts
+            initialPosts={postsWithLikeStatus}
+            username={username}
+          />
+        )}
       </div>
     );
   } catch (error) {
